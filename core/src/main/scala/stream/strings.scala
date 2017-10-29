@@ -3,6 +3,7 @@ package dispatch.stream
 import java.nio.charset.Charset
 
 import org.asynchttpclient._
+import io.netty.handler.codec.http.HttpHeaders
 import org.asynchttpclient.util.HttpUtils
 
 trait Strings[T] extends AsyncHandler[T] {
@@ -14,9 +15,9 @@ trait Strings[T] extends AsyncHandler[T] {
   def onThrowable(t: Throwable) = { }
   def onCompleted(): T
   def onStatusReceived(status: HttpResponseStatus) = state
-  def onHeadersReceived(headers: HttpResponseHeaders) = {
+  def onHeadersReceived(headers: HttpHeaders) = {
     for {
-      ct <- Option(headers.getHeaders.get("content-type"))
+      ct <- Option(headers.get("content-type"))
       cs <- Option(HttpUtils.parseCharset(ct))
     } charset = cs
     state

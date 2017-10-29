@@ -3,11 +3,11 @@ package dispatch
 import java.nio.charset.Charset
 
 import org.asynchttpclient.Realm.AuthScheme
-import org.asynchttpclient.cookie.Cookie
 import org.asynchttpclient.proxy.ProxyServer
 import org.asynchttpclient.request.body.generator.BodyGenerator
 import org.asynchttpclient.request.body.multipart.Part
 import org.asynchttpclient.{Realm, RequestBuilder}
+import io.netty.handler.codec.http.cookie.Cookie
 
 /** This wrapper provides referential transparency for the
   * underlying RequestBuilder. */
@@ -197,10 +197,16 @@ trait RequestBuilderVerbs extends RequestVerbs {
     }
   def setHeader(name: String, value: String) =
     subject.underlying { _.setHeader(name, value) }
-  def setHeaders(headers: Map[String, Seq[String]]) =
-    subject.underlying { _.setHeaders(
-      headers.mapValues { _.asJava: Collection[String] }.asJava
-    ) }
+  def setHeaders(headers: Map[String, Seq[String]]) = {
+    val typedValues =
+      (headers.mapValues { vs => (vs.asJava: Collection[String]).asInstanceOf[Any] })
+    
+    subject.underlying { builder =>
+      typedValues.foldLeft (builder)({ case (bldr, v) =>
+        bldr.addHeader(v._1, v._2)
+      })
+    }
+  }
   def setParameters(parameters: Map[String, Seq[String]]) =
     subject.underlying { _.setFormParams(
       parameters.mapValues { _.asJava: java.util.List[String] }.asJava
